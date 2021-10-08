@@ -122,7 +122,8 @@ function lab_scenario_1 () {
     --name $VNET_NAME \
     --address-prefixes 192.168.0.0/16 \
     --subnet-name $SUBNET_NAME \
-    --subnet-prefix 192.168.100.0/24
+    --subnet-prefix 192.168.100.0/24 \
+    -o table
 	
     SUBNET_ID=$(az network vnet subnet list \
     --resource-group $RESOURCE_GROUP \
@@ -141,6 +142,7 @@ function lab_scenario_1 () {
     --vnet-subnet-id $SUBNET_ID \
     --tag aks-net-lab=${LAB_SCENARIO} \
     --generate-ssh-keys \
+    --yes \
     -o table
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
