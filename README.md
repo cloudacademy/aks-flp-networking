@@ -19,8 +19,8 @@ Here is the list of current labs available:
 
 ***************************************************************
 *        1. Pods on different nodes not able to reach each other
-*        2. Outbound issue
-*        3. Inbound issue
+*        2. Outbound issue (not ready yet)
+*        3. Inbound issue (not ready yet)
 ***************************************************************
 
 "-l|--lab" Lab scenario to deploy (3 possible options)
