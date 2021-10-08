@@ -7,7 +7,7 @@ Any time the labs script require an update the github actions can be use to trig
 
 Here is the general usage for the image and aks-flp-networking tool:
 
-Run in docker docker run -it sturrent/aks-flp-networking:latest
+Run in docker `docker run -it sturrent/aks-flp-networking:latest`
 
 aks-flp-networking tool usage
 ```
