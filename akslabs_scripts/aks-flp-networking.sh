@@ -66,7 +66,7 @@ SCRIPT_VERSION="Version v0.0.2 20211008"
 function az_login_check () {
     if $(az account list 2>&1 | grep -q 'az login')
     then
-        echo -e "\nError: You have to login first with the 'az login' command before you can run this lab tool\n"
+        echo -e "\n--> Error: You have to login first with the 'az login' command before you can run this lab tool\n"
         az login -o table
     fi
 }
@@ -79,7 +79,7 @@ function check_resourcegroup_cluster () {
     RG_EXIST=$(az group show -g $RESOURCE_GROUP &>/dev/null; echo $?)
     if [ $RG_EXIST -ne 0 ]
     then
-        echo -e "\nCreating resource group ${RESOURCE_GROUP}...\n"
+        echo -e "\n--> Creating resource group ${RESOURCE_GROUP}...\n"
         az group create --name $RESOURCE_GROUP --location $LOCATION &>/dev/null
     else
         echo -e "\nResource group $RESOURCE_GROUP already exists...\n"
@@ -88,7 +88,7 @@ function check_resourcegroup_cluster () {
     CLUSTER_EXIST=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME &>/dev/null; echo $?)
     if [ $CLUSTER_EXIST -eq 0 ]
     then
-        echo -e "\nCluster $CLUSTER_NAME already exists...\n"
+        echo -e "\n--> Cluster $CLUSTER_NAME already exists...\n"
         echo -e "Please remove that one before you can proceed with the lab.\n"
         exit 5
     fi
@@ -102,7 +102,7 @@ function validate_cluster_exists () {
     CLUSTER_EXIST=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME &>/dev/null; echo $?)
     if [ $CLUSTER_EXIST -ne 0 ]
     then
-        echo -e "\nERROR: Failed to create cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP ...\n"
+        echo -e "\n--> ERROR: Failed to create cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP ...\n"
         exit 5
     fi
 }
@@ -116,7 +116,7 @@ function lab_scenario_1 () {
     SUBNET_NAME=aks-subnet-ex1
     UDR_NAME=security-routes
 
-    echo -e "Deploying cluster for lab1...\n"
+    echo -e "--> Deploying cluster for lab1...\n"
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
     --name $VNET_NAME \
@@ -147,11 +147,11 @@ function lab_scenario_1 () {
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
-    echo -e "\n\nPlease wait while we are preparing the environment for you to troubleshoot..."
+    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot..."
     az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME -o table
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
-    echo -e "\n--------------------------------------------------------------------------\n"
+    echo -e "\n************************************************************************\n"
     echo -e "Case 1 is ready, pods on different nodes not able to talk to each other...\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
 }
@@ -163,10 +163,10 @@ function lab_scenario_1_validation () {
     SUBNET_NAME=aks-subnet-ex1
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
     echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
-    echo -e "Running validation for Lab scenario $LAB_SCENARIO\n"
+    echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
     then
-        echo -e "\nError: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
         exit 6
     elif [ $LAB_TAG -eq $LAB_SCENARIO ]
     then
@@ -182,7 +182,7 @@ function lab_scenario_1_validation () {
             echo -e "\nScenario $LAB_SCENARIO is still FAILED\n"
         fi
     else
-        echo -e "\nError: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
         exit 6
     fi
 }
@@ -330,7 +330,7 @@ then
 fi
 
 # main
-echo -e "\nAKS Troubleshooting sessions
+echo -e "\n--> AKS Troubleshooting sessions
 ********************************************
 
 This tool will use your default subscription to deploy the lab environments.
@@ -366,7 +366,7 @@ elif [ $LAB_SCENARIO -eq 3 ] && [ $VALIDATE -eq 1 ]
 then
     lab_scenario_3_validation
 else
-    echo -e "\nError: no valid option provided\n"
+    echo -e "\n--> Error: no valid option provided\n"
     exit 12
 fi
 
