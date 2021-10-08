@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.1 20210927
+# Version v0.0.2 20211008
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.1 20210927"
+SCRIPT_VERSION="Version v0.0.2 20211008"
 
 # Funtion definition
 
@@ -148,8 +148,8 @@ function lab_scenario_1 () {
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
     echo -e "\n\nPlease wait while we are preparing the environment for you to troubleshoot..."
-    az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME 
-    az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME
+    az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME -o table
+    az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n--------------------------------------------------------------------------\n"
     echo -e "Case 1 is ready, pods on different nodes not able to talk to each other...\n"
