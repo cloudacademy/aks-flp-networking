@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.2 20211008
+# Version v0.0.3 20211013
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.2 20211008"
+SCRIPT_VERSION="Version v0.0.3 20211013"
 
 # Funtion definition
 
@@ -189,45 +189,83 @@ function lab_scenario_1_validation () {
 
 # Lab scenario 2
 function lab_scenario_2 () {
-    CLUSTER_NAME=aks-ex2-${USER_ALIAS}
-    RESOURCE_GROUP=aks-ex2-rg-${USER_ALIAS}
+    CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
+    RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
+    VNET_NAME=aks-vnet-ex1
+    SUBNET_NAME=aks-subnet-ex1
+    UDR_NAME=security-routes
+    check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
+
+    az network vnet create \
+    --resource-group $RESOURCE_GROUP \
+    --name $VNET_NAME \
+    --address-prefixes 192.168.0.0/16 \
+    --subnet-name $SUBNET_NAME \
+    --subnet-prefix 192.168.100.0/24
+	
+    SUBNET_ID=$(az network vnet subnet list \
+    --resource-group $RESOURCE_GROUP \
+    --vnet-name $VNET_NAME \
+    --query [].id --output tsv)
+
+    az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME -o table
+    az network route-table route create -g $RESOURCE_GROUP --route-table-name $UDR_NAME -n main-route \
+    --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.0.1 -o table &>/dev/null
+    az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
 
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 1 \
+    --network-plugin azure \
+    --service-cidr 10.0.0.0/16 \
+    --dns-service-ip 10.0.0.10 \
+    --docker-bridge-address 172.17.0.1/16 \
+    --vnet-subnet-id $SUBNET_ID \
     --generate-ssh-keys \
-    --tag akslab=${LAB_SCENARIO} \
+    --tag aks-net-lab=${LAB_SCENARIO} \
+	--yes \
     -o table
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
     
-    VM_NAME=testvm1-${USER_ALIAS}
-    VM_RESOURCE_GROUP=vm-test-rg-${USER_ALIAS}
     MC_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
-    #SUBNET_ID=$(az network vnet list -g $MC_RESOURCE_GROUP --query '[].subnets[].id' -o tsv)
-    SUBNET_NAME=$(az network vnet list -o table | grep $MC_RESOURCE_GROUP | awk '{print $1}')
-    SUBNET_ID=$(az network vnet show -g $MC_RESOURCE_GROUP -n $SUBNET_NAME --query subnets[].id -o tsv)
-
-    az group create --name $VM_RESOURCE_GROUP --location $LOCATION
-    az vm create \
-    -g $VM_RESOURCE_GROUP \
-    -n $VM_NAME \
-    --image UbuntuLTS \
-    --size Standard_B1s \
-    --subnet $SUBNET_ID \
-    --admin-username azureuser \
-    --generate-ssh-keys \
-    --tag akslab=${LAB_SCENARIO} \
-    -o table
-
-    az group delete -g $RESOURCE_GROUP -y --no-wait
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n\n********************************************************"
-    echo -e "\nIt seems cluster is stuck in delete state...\n"
+    echo -e "\nIssue description: new cluster deployment fails with \"vmssCSE failed: connect to mcr.microsoft.com port 443 (tcp) failed: Connection timed out\" and there are no nodes in the cluster from Kubernetes perspective\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
+}
+
+function lab_scenario_2_validation () {
+    CLUSTER_NAME=aks-net-ex2-${USER_ALIAS}
+    RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
+    VNET_NAME=aks-vnet-ex2
+    SUBNET_NAME=aks-subnet-ex2
+    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
+    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
+    if [ -z $LAB_TAG ]
+    then
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        exit 6
+    elif [ $LAB_TAG -eq $LAB_SCENARIO ]
+    then
+        az aks get-credentials -g $RESOURCE_GROUP -n $CLUSTER_NAME --overwrite-existing &>/dev/null
+        CLUSTER_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
+        GET_NODES="$(kubectl get no 2>&1)"
+        if [ "$GET_NODES" != "No resources found" ]
+        then
+            echo -e "\n\n========================================================"
+            echo -e "\nThe cluster nodes outbound looks good now\n"
+        else
+            echo -e "\nScenario $LAB_SCENARIO is still FAILED\n"
+        fi
+    else
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        exit 6
+    fi
 }
 
 # Lab scenario 3
@@ -282,7 +320,7 @@ then
     echo -e "\nHere is the list of current labs available:\n
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue
+*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
 *\t 3. Inbound issue
 ***************************************************************\n"
     echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
@@ -304,7 +342,7 @@ if [ -z $LAB_SCENARIO ]; then
     echo -e "\nHere is the list of current labs available:\n
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue
+*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
 *\t 3. Inbound issue
 ***************************************************************\n"
 	exit 9
@@ -316,7 +354,7 @@ if [ -z $USER_ALIAS ]; then
     echo -e "\nHere is the list of current labs available:\n
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue
+*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
 *\t 3. Inbound issue
 ***************************************************************\n"
 	exit 10
