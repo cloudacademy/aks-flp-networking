@@ -66,7 +66,7 @@ SCRIPT_VERSION="Version v0.0.3 20211013"
 function az_login_check () {
     if $(az account list 2>&1 | grep -q 'az login')
     then
-        echo -e "\n--> Error: You have to login first with the 'az login' command before you can run this lab tool\n"
+        echo -e "\n--> Warning: You have to login first with the 'az login' command before you can run this lab tool\n"
         az login -o table
     fi
 }
@@ -80,7 +80,7 @@ function check_resourcegroup_cluster () {
     if [ $RG_EXIST -ne 0 ]
     then
         echo -e "\n--> Creating resource group ${RESOURCE_GROUP}...\n"
-        az group create --name $RESOURCE_GROUP --location $LOCATION &>/dev/null
+        az group create --name $RESOURCE_GROUP --location $LOCATION -o table &>/dev/null
     else
         echo -e "\nResource group $RESOURCE_GROUP already exists...\n"
     fi
@@ -189,11 +189,11 @@ function lab_scenario_1_validation () {
 
 # Lab scenario 2
 function lab_scenario_2 () {
-    CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
+    CLUSTER_NAME=aks-net-ex2-${USER_ALIAS}
+    RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
-    VNET_NAME=aks-vnet-ex1
-    SUBNET_NAME=aks-subnet-ex1
+    VNET_NAME=aks-vnet-ex2
+    SUBNET_NAME=aks-subnet-ex2
     UDR_NAME=security-routes
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
 
@@ -202,7 +202,8 @@ function lab_scenario_2 () {
     --name $VNET_NAME \
     --address-prefixes 192.168.0.0/16 \
     --subnet-name $SUBNET_NAME \
-    --subnet-prefix 192.168.100.0/24
+    --subnet-prefix 192.168.100.0/24 \
+    -o table
 	
     SUBNET_ID=$(az network vnet subnet list \
     --resource-group $RESOURCE_GROUP \
@@ -234,7 +235,7 @@ function lab_scenario_2 () {
     MC_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n\n********************************************************"
-    echo -e "\nIssue description: new cluster deployment fails with \"vmssCSE failed: connect to mcr.microsoft.com port 443 (tcp) failed: Connection timed out\" and there are no nodes in the cluster from Kubernetes perspective\n"
+    echo -e "\nIssue description: new cluster deployment fails with \"vmssCSE failed: connect to mcr.microsoft.com port 443 (tcp) failed: Connection timed out\" \nAnd there are no nodes in the cluster from Kubernetes perspective\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
 }
 
