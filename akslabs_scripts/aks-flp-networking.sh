@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.4 20211013
+# Version v0.0.5 20211014
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.4 20211013"
+SCRIPT_VERSION="Version v0.0.5 20211014"
 
 # Funtion definition
 
@@ -271,47 +271,95 @@ function lab_scenario_2_validation () {
 
 # Lab scenario 3
 function lab_scenario_3 () {
-    CLUSTER_NAME=aks-ex3-${USER_ALIAS}
-    RESOURCE_GROUP=aks-ex3-rg-${USER_ALIAS}
-    VNET_NAME=aks-vnet-ex3-${USER_ALIAS}
-    SUBNET_NAME=aks-subnet-ex3-${USER_ALIAS}
+    CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
+    RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
-
-    az network vnet create \
-    --resource-group $RESOURCE_GROUP \
-    --name $VNET_NAME \
-    --address-prefixes 192.168.0.0/16 \
-    --dns-servers 172.20.50.2 \
-    --subnet-name $SUBNET_NAME \
-    --subnet-prefix 192.168.100.0/24 \
-    -o table
-	
-    SUBNET_ID=$(az network vnet subnet list \
-    --resource-group $RESOURCE_GROUP \
-    --vnet-name $VNET_NAME \
-    --query [].id --output tsv)
-
+    
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
     --location $LOCATION \
-    --node-count 2 \
-    --node-osdisk-size 50 \
-    --node-vm-size Standard_B2s \
-    --network-plugin azure \
-    --service-cidr 10.0.0.0/16 \
-    --dns-service-ip 10.0.0.10 \
-    --docker-bridge-address 172.17.0.1/16 \
-    --vnet-subnet-id $SUBNET_ID \
+    --node-count 1 \
     --generate-ssh-keys \
     --tag akslab=${LAB_SCENARIO} \
+	--yes \
     -o table
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
+    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot..."
+    az aks get-credentials -g $RESOURCE_GROUP -n $CLUSTER_NAME --overwrite-existing &>/dev/null
+
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-helloworld-one  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aks-helloworld-one
+  template:
+    metadata:
+      labels:
+        app: aks-helloworld-one
+    spec:
+      containers:
+      - name: aks-helloworld-one
+        image: mcr.microsoft.com/azuredocs/aks-helloworld:v1
+        ports:
+        - containerPort: 88
+        env:
+        - name: TITLE
+          value: "Welcome to Azure Kubernetes Service (AKS)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aks-helloworld-one  
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 88
+  selector:
+    app: aks-helloworld-one
+EOF
+
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
-    echo "Cluster deployment failed...\n"
+    echo -e "\nIssue description: Cluster has a web application \"aks-helloworld-one\" exposed with service type LoadBalancer that is currently not reachable...\n"
     echo -e "\nCluster uri == ${CLUSTER_URI}\n"
+}
+
+function lab_scenario_3_validation () {
+    CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
+    RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
+    
+    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
+    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
+    if [ -z $LAB_TAG ]
+    then
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        exit 6
+    elif [ $LAB_TAG -eq $LAB_SCENARIO ]
+    then
+        az aks get-credentials -g $RESOURCE_GROUP -n $CLUSTER_NAME --overwrite-existing &>/dev/null
+        CLUSTER_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
+        PUBLIC_IP="$(kubectl get svc aks-helloworld-one | grep -v ^NAME | awk '{print $4}')"
+        SITE_STATUS="$(curl -IL -m 5 $PUBLIC_IP 2>/dev/null | grep ^HTTP | awk '{print $2}')"
+        if [ "$SITE_STATUS" == '200' ]
+        then
+            echo -e "\n\n========================================================"
+            echo -e "\nThe webservice looks good now\n"
+        else
+            echo -e "\nScenario $LAB_SCENARIO is still FAILED\n"
+        fi
+    else
+        echo -e "\n--> Error: Cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP was not created with this tool for lab $LAB_SCENARIO and cannot be validated...\n"
+        exit 6
+    fi
 }
 
 #if -h | --help option is selected usage will be displayed
@@ -322,7 +370,7 @@ then
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
 *\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue
+*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
 ***************************************************************\n"
     echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
 "-r|--region" region to create the resources
@@ -344,7 +392,7 @@ if [ -z $LAB_SCENARIO ]; then
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
 *\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue
+*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
 ***************************************************************\n"
 	exit 9
 fi
@@ -356,7 +404,7 @@ if [ -z $USER_ALIAS ]; then
 ***************************************************************
 *\t 1. Pods on different nodes not able to reach each other
 *\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue
+*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
 ***************************************************************\n"
 	exit 10
 fi

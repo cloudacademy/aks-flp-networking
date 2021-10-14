@@ -20,7 +20,7 @@ Here is the list of current labs available:
 ***************************************************************
 *        1. Pods on different nodes not able to reach each other
 *        2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*        3. Inbound issue (not ready yet)
+*        3. Inbound issue, AKS service LoadBalancer type not reachable
 ***************************************************************
 
 "-l|--lab" Lab scenario to deploy (3 possible options)
