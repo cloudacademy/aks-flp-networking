@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.5 20211014
+# Version v0.0.6 20211014
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.5 20211014"
+SCRIPT_VERSION="Version v0.0.6 20211014"
 
 # Funtion definition
 
@@ -116,7 +116,7 @@ function lab_scenario_1 () {
     SUBNET_NAME=aks-subnet-ex1
     UDR_NAME=security-routes
 
-    echo -e "--> Deploying cluster for lab1...\n"
+    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
     --name $VNET_NAME \
@@ -152,7 +152,7 @@ function lab_scenario_1 () {
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n************************************************************************\n"
-    echo -e "Case 1 is ready, pods on different nodes not able to talk to each other...\n"
+    echo -e "\n--> Issue description: \n Pods on different nodes not able to talk to each other\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
 }
 
@@ -215,6 +215,7 @@ function lab_scenario_2 () {
     --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.0.1 -o table &>/dev/null
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
 
+    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
@@ -235,7 +236,7 @@ function lab_scenario_2 () {
     MC_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n\n********************************************************"
-    echo -e "\nIssue description: new cluster deployment fails with \"vmssCSE failed: connect to mcr.microsoft.com port 443 (tcp) failed: Connection timed out\" \nAnd there are no nodes in the cluster from Kubernetes perspective\n"
+    echo -e "\n--> Issue description: \nNew cluster deployment fails with \"vmssCSE failed: connect to mcr.microsoft.com port 443 (tcp) failed: Connection timed out\" \nAnd there are no nodes in the cluster from Kubernetes perspective\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
 }
 
@@ -275,6 +276,7 @@ function lab_scenario_3 () {
     RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     
+    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
@@ -328,7 +330,8 @@ spec:
 EOF
 
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
-    echo -e "\nIssue description: Cluster has a web application \"aks-helloworld-one\" exposed with service type LoadBalancer that is currently not reachable...\n"
+    echo -e "\n\n********************************************************"
+    echo -e "\n--> Issue description: \nCluster has a web application \"aks-helloworld-one\" exposed with service type LoadBalancer that is currently not reachable...\n"
     echo -e "\nCluster uri == ${CLUSTER_URI}\n"
 }
 
