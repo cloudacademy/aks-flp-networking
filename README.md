@@ -12,16 +12,16 @@ Run in docker: `docker run -it sturrent/aks-flp-networking:latest`
 aks-flp-networking tool usage:
 ```
 $ aks-flp-networking -h
-aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]
+aks-flp-networking.sh usage: aks-flp-networking.sh -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]
 
 
 Here is the list of current labs available:
 
-***************************************************************
+*************************************************************************************
 *        1. Pods on different nodes not able to reach each other
 *        2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
 *        3. Inbound issue, AKS service LoadBalancer type not reachable
-***************************************************************
+*************************************************************************************
 
 "-l|--lab" Lab scenario to deploy (3 possible options)
 "-r|--region" region to create the resources

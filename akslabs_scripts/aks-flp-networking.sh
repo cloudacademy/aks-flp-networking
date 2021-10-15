@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.6 20211014
+# Version v0.0.7 20211015
 # Set of tools to deploy AKS troubleshooting labs
 
-# "-l|--lab" Lab scenario to deploy (5 possible options)
+# "-l|--lab" Lab scenario to deploy
 # "-r|--region" region to deploy the resources
 # "-u|--user" User alias to add on the lab name
 # "-h|--help" help info
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.6 20211014"
+SCRIPT_VERSION="Version v0.0.7 20211015"
 
 # Funtion definition
 
@@ -107,6 +107,18 @@ function validate_cluster_exists () {
     fi
 }
 
+# Usage text
+function print_usage_text () {
+    NAME_EXEC="aks-flp-networking.sh"
+    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+    echo -e "\nHere is the list of current labs available:\n
+*************************************************************************************
+*\t 1. Pods on different nodes not able to reach each other
+*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
+*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
+*************************************************************************************\n"
+}
+
 # Lab scenario 1
 function lab_scenario_1 () {
     CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
@@ -116,7 +128,7 @@ function lab_scenario_1 () {
     SUBNET_NAME=aks-subnet-ex1
     UDR_NAME=security-routes
 
-    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
+    echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
     --name $VNET_NAME \
@@ -147,7 +159,7 @@ function lab_scenario_1 () {
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
-    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot..."
+    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot...\n"
     az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME -o table
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
@@ -162,7 +174,7 @@ function lab_scenario_1_validation () {
     VNET_NAME=aks-vnet-ex1
     SUBNET_NAME=aks-subnet-ex1
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
-    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++++"
     echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
     then
@@ -215,7 +227,7 @@ function lab_scenario_2 () {
     --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.0.1 -o table &>/dev/null
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
 
-    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
+    echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
@@ -246,7 +258,7 @@ function lab_scenario_2_validation () {
     VNET_NAME=aks-vnet-ex2
     SUBNET_NAME=aks-subnet-ex2
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
-    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++++"
     echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
     then
@@ -276,7 +288,7 @@ function lab_scenario_3 () {
     RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     
-    echo -e "--> Deploying cluster for lab${LAB_SCENARIO}...\n"
+    echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az aks create \
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
@@ -289,7 +301,7 @@ function lab_scenario_3 () {
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
-    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot..."
+    echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot...\n"
     az aks get-credentials -g $RESOURCE_GROUP -n $CLUSTER_NAME --overwrite-existing &>/dev/null
 
 cat <<EOF | kubectl apply -f -
@@ -368,13 +380,7 @@ function lab_scenario_3_validation () {
 #if -h | --help option is selected usage will be displayed
 if [ $HELP -eq 1 ]
 then
-	echo -e "aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
-    echo -e "\nHere is the list of current labs available:\n
-***************************************************************
-*\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
-***************************************************************\n"
+	print_usage_text
     echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
 "-r|--region" region to create the resources
 "--version" print version of aks-flp-networking
@@ -389,33 +395,21 @@ then
 fi
 
 if [ -z $LAB_SCENARIO ]; then
-	echo -e "Error: Lab scenario value must be provided. \n"
-	echo -e "aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
-    echo -e "\nHere is the list of current labs available:\n
-***************************************************************
-*\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
-***************************************************************\n"
+	echo -e "\n--> Error: Lab scenario value must be provided. \n"
+	print_usage_text
 	exit 9
 fi
 
 if [ -z $USER_ALIAS ]; then
 	echo -e "Error: User alias value must be provided. \n"
-	echo -e "aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
-    echo -e "\nHere is the list of current labs available:\n
-***************************************************************
-*\t 1. Pods on different nodes not able to reach each other
-*\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
-*\t 3. Inbound issue, AKS service LoadBalancer type not reachable
-***************************************************************\n"
+	print_usage_text
 	exit 10
 fi
 
 # lab scenario has a valid option
 if [[ ! $LAB_SCENARIO =~ ^[1-3]+$ ]];
 then
-    echo -e "\nError: invalid value for lab scenario '-l $LAB_SCENARIO'\nIt must be value from 1 to 3\n"
+    echo -e "\n--> Error: invalid value for lab scenario '-l $LAB_SCENARIO'\nIt must be value from 1 to 3\n"
     exit 11
 fi
 
