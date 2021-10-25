@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.7 20211015
+# Version v0.0.8 20211025
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.7 20211015"
+SCRIPT_VERSION="Version v0.0.8 20211025"
 
 # Funtion definition
 
@@ -109,7 +109,7 @@ function validate_cluster_exists () {
 
 # Usage text
 function print_usage_text () {
-    NAME_EXEC="aks-flp-networking.sh"
+    NAME_EXEC="aks-flp-networking"
     echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
