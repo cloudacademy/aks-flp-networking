@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.8 20211025
+# Version v0.0.9 20211105
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.8 20211025"
+SCRIPT_VERSION="Version v0.0.9 20211105"
 
 # Funtion definition
 
@@ -173,7 +173,7 @@ function lab_scenario_1_validation () {
     RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
     VNET_NAME=aks-vnet-ex1
     SUBNET_NAME=aks-subnet-ex1
-    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
+    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
     echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++++"
     echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
@@ -257,7 +257,7 @@ function lab_scenario_2_validation () {
     RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
     VNET_NAME=aks-vnet-ex2
     SUBNET_NAME=aks-subnet-ex2
-    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
+    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
     echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++++"
     echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
@@ -351,7 +351,7 @@ function lab_scenario_3_validation () {
     CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
     RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
     
-    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o tsv 2>/dev/null)"
+    LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
     echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
     echo -e "--> Running validation for Lab scenario $LAB_SCENARIO\n"
     if [ -z $LAB_TAG ]
