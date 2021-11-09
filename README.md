@@ -12,7 +12,7 @@ Run in docker: `docker run -it sturrent/aks-flp-networking:latest`
 aks-flp-networking tool usage:
 ```
 $ aks-flp-networking -h
-aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]
+aks-flp-networking usage: aks-flp-networking -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]
 
 
 Here is the list of current labs available:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.9 20211105
+# Version v0.0.10 20211109
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.9 20211105"
+SCRIPT_VERSION="Version v0.0.10 20211109"
 
 # Funtion definition
 
@@ -110,7 +110,7 @@ function validate_cluster_exists () {
 # Usage text
 function print_usage_text () {
     NAME_EXEC="aks-flp-networking"
-    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
 *\t 1. Pods on different nodes not able to reach each other
