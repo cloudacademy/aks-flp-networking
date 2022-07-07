@@ -137,13 +137,20 @@ function validate_cluster_exists () {
 # Usage text
 function print_usage_text () {
     NAME_EXEC="aks-flp-networking"
-    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-s|--sku] [-h|--help] [--version]\n"
-    echo -e "\nHere is the list of current labs available:\n
+    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-s|--sku] [-h|--help] [--version]"
+    echo -e "\nHere is the list of current labs available:
 *************************************************************************************
 *\t 1. Pods on different nodes not able to reach each other
 *\t 2. Outbound issue, AKS nodes deployment failed due to outbound connectivity
 *\t 3. Inbound issue, AKS service LoadBalancer type not reachable
 *************************************************************************************\n"
+echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
+"-u|--user" User alias to add on the lab name
+"-r|--region" region to create the resources
+"-s|--sku" nodes SKU
+"-v|--validate" validate resolution
+"--version" print version of the tool
+"-h|--help" help info\n'
 }
 
 # Lab scenario 1
@@ -416,10 +423,6 @@ function lab_scenario_3_validation () {
 if [ $HELP -eq 1 ]
 then
 	print_usage_text
-    echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
-"-r|--region" region to create the resources
-"--version" print version of aks-flp-networking
-"-h|--help" help info\n'
 	exit 0
 fi
 
