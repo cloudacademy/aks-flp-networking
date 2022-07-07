@@ -1,17 +1,19 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.11 20220225
+# Version v0.0.12 20220707
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
 # "-r|--region" region to deploy the resources
+# "-s|--sku" nodes SKU
 # "-u|--user" User alias to add on the lab name
+# "-v|--validate" validate resolution
 # "-h|--help" help info
 # "--version" print version
 
 # read the options
-TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'aks-flp-networking.sh' -- "$@"`
+TEMP=`getopt -o g:n:l:r:s:u:hv --long resource-group:,name:,lab:,region:,sku:,user:,help,validate,version -n 'aks-flp-networking.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # set an initial value for the flags
@@ -20,6 +22,7 @@ CLUSTER_NAME=""
 LAB_SCENARIO=""
 USER_ALIAS=""
 LOCATION="eastus2"
+SKU="Standard_DS2_v2"
 VALIDATE=0
 HELP=0
 VERSION=0
@@ -44,6 +47,10 @@ do
             "") shift 2;;
             *) LOCATION="$2"; shift 2;;
             esac;;
+        -s|--sku) case "$2" in
+            "") shift 2;;
+            *) SKU="$2"; shift 2;;
+            esac;;
         -u|--user) case "$2" in
             "") shift 2;;
             *) USER_ALIAS="$2"; shift 2;;
@@ -58,7 +65,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.11 20220225"
+SCRIPT_VERSION="Version v0.0.12 20220707"
 
 # Funtion definition
 
@@ -68,6 +75,26 @@ function az_login_check () {
     then
         echo -e "\n--> Warning: You have to login first with the 'az login' command before you can run this lab tool\n"
         az login -o table
+    fi
+}
+
+# validate SKU availability
+function check_sku_availability () {
+    SKU="$1"
+    
+    echo -e "\n--> Checking if SKU \"$SKU\" is available in your subscription at region \"$LOCATION\" ...\n"
+    while true; do for s in / - \\ \|; do printf "\r$s"; sleep 1; done; done &  # running spiner
+    SKU_LIST="$(az vm list-skus -l $LOCATION -o table | grep -v -E '(disk|hostGroups/hosts|snapshots|availabilitySets|NotAvailableForSubscription|Name|^--)')"
+    kill $!; trap 'kill $!' SIGTERM # kill spiner
+    if ! $(echo "$SKU_LIST" | grep -q -w "$SKU")
+    then
+        echo -e "\n--> ERROR: The SKU \"${SKU}\" is not available in your subscription at region \"${LOCATION}\".\n"
+        echo -e "The SKUs currently available in your subscription for region \"${LOCATION}\" are:\n"
+        echo "$SKU_LIST" | awk '{print $3}' | pr -7 -s" | " -T
+        echo -e "\n\n--> Please try with one of the above SKUs (if any) or try with a different region.\n"
+        exit 4
+    else
+        echo -e "\n--> SKU \"${SKU}\" is available in your subscription at region \"${LOCATION}\"\n"
     fi
 }
 
@@ -110,7 +137,7 @@ function validate_cluster_exists () {
 # Usage text
 function print_usage_text () {
     NAME_EXEC="aks-flp-networking"
-    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+    echo -e "$NAME_EXEC usage: $NAME_EXEC -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-s|--sku] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 *************************************************************************************
 *\t 1. Pods on different nodes not able to reach each other
@@ -123,10 +150,12 @@ function print_usage_text () {
 function lab_scenario_1 () {
     CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
     RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
-    check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     VNET_NAME=aks-vnet-ex1
     SUBNET_NAME=aks-subnet-ex1
     UDR_NAME=security-routes
+    
+    check_sku_availability "$SKU"
+    check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
 
     echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
     az network vnet create \
@@ -147,6 +176,7 @@ function lab_scenario_1 () {
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 2 \
+    --node-vm-size "$SKU" \
     --network-plugin kubenet \
     --service-cidr 10.0.0.0/16 \
     --dns-service-ip 10.0.0.10 \
@@ -203,10 +233,11 @@ function lab_scenario_1_validation () {
 function lab_scenario_2 () {
     CLUSTER_NAME=aks-net-ex2-${USER_ALIAS}
     RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
-    check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     VNET_NAME=aks-vnet-ex2
     SUBNET_NAME=aks-subnet-ex2
     UDR_NAME=security-routes
+
+    check_sku_availability "$SKU"
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
 
     az network vnet create \
@@ -233,6 +264,7 @@ function lab_scenario_2 () {
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 1 \
+    --node-vm-size "$SKU" \
     --network-plugin azure \
     --service-cidr 10.0.0.0/16 \
     --dns-service-ip 10.0.0.10 \
@@ -286,6 +318,8 @@ function lab_scenario_2_validation () {
 function lab_scenario_3 () {
     CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
     RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
+
+    check_sku_availability "$SKU"
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     
     echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
@@ -294,6 +328,7 @@ function lab_scenario_3 () {
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 1 \
+    --node-vm-size "$SKU" \
     --generate-ssh-keys \
     --tag aks-net-lab=${LAB_SCENARIO} \
 	--yes \
@@ -418,6 +453,8 @@ echo -e "\n--> AKS Troubleshooting sessions
 ********************************************
 
 This tool will use your default subscription to deploy the lab environments.
+
+--> Checking prerequisites...
 Verifing if you are authenticated already...\n"
 
 # Verify az cli has been authenticated
@@ -425,7 +462,6 @@ az_login_check
 
 if [ $LAB_SCENARIO -eq 1 ] && [ $VALIDATE -eq 0 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_1
 
 elif [ $LAB_SCENARIO -eq 1 ] && [ $VALIDATE -eq 1 ]
@@ -434,7 +470,6 @@ then
 
 elif [ $LAB_SCENARIO -eq 2 ] && [ $VALIDATE -eq 0 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_2
 
 elif [ $LAB_SCENARIO -eq 2 ] && [ $VALIDATE -eq 1 ]
@@ -443,7 +478,6 @@ then
 
 elif [ $LAB_SCENARIO -eq 3 ] && [ $VALIDATE -eq 0 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_3
 
 elif [ $LAB_SCENARIO -eq 3 ] && [ $VALIDATE -eq 1 ]
