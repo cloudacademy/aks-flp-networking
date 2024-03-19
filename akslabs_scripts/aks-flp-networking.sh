@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # script name: aks-flp-networking.sh
-# Version v0.0.12 20220707
+# Version v0.0.12 20240315
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy
+# "-g|--resource-group" resource group to deploy the resources
 # "-r|--region" region to deploy the resources
 # "-s|--sku" nodes SKU
 # "-u|--user" User alias to add on the lab name
@@ -65,7 +66,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.0.12 20220707"
+SCRIPT_VERSION="Version v0.0.12 20240315"
 
 # Funtion definition
 
@@ -156,12 +157,12 @@ echo -e '"-l|--lab" Lab scenario to deploy (3 possible options)
 # Lab scenario 1
 function lab_scenario_1 () {
     CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex1-rg-${USER_ALIAS}}
     VNET_NAME=aks-vnet-ex1
     SUBNET_NAME=aks-subnet-ex1
     UDR_NAME=security-routes
     
-    check_sku_availability "$SKU"
+    #check_sku_availability "$SKU"
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
 
     echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
@@ -207,7 +208,7 @@ function lab_scenario_1 () {
 
 function lab_scenario_1_validation () {
     CLUSTER_NAME=aks-net-ex1-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex1-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex1-rg-${USER_ALIAS}}
     VNET_NAME=aks-vnet-ex1
     SUBNET_NAME=aks-subnet-ex1
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
@@ -239,12 +240,12 @@ function lab_scenario_1_validation () {
 # Lab scenario 2
 function lab_scenario_2 () {
     CLUSTER_NAME=aks-net-ex2-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex2-rg-${USER_ALIAS}}
     VNET_NAME=aks-vnet-ex2
     SUBNET_NAME=aks-subnet-ex2
     UDR_NAME=security-routes
 
-    check_sku_availability "$SKU"
+    #check_sku_availability "$SKU"
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
 
     az network vnet create \
@@ -293,7 +294,7 @@ function lab_scenario_2 () {
 
 function lab_scenario_2_validation () {
     CLUSTER_NAME=aks-net-ex2-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex2-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex2-rg-${USER_ALIAS}}
     VNET_NAME=aks-vnet-ex2
     SUBNET_NAME=aks-subnet-ex2
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
@@ -324,9 +325,9 @@ function lab_scenario_2_validation () {
 # Lab scenario 3
 function lab_scenario_3 () {
     CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex3-rg-${USER_ALIAS}}
 
-    check_sku_availability "$SKU"
+    #check_sku_availability "$SKU"
     check_resourcegroup_cluster $RESOURCE_GROUP $CLUSTER_NAME
     
     echo -e "\n--> Deploying cluster for lab${LAB_SCENARIO}...\n"
@@ -391,7 +392,7 @@ EOF
 
 function lab_scenario_3_validation () {
     CLUSTER_NAME=aks-net-ex3-${USER_ALIAS}
-    RESOURCE_GROUP=aks-net-ex3-rg-${USER_ALIAS}
+    RESOURCE_GROUP=${RESOURCE_GROUP:-aks-net-ex3-rg-${USER_ALIAS}}
     
     LAB_TAG="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query tags -o yaml 2>/dev/null | grep aks-net-lab | cut -d ' ' -f2 | tr -d "'")"
     echo -e "\n+++++++++++++++++++++++++++++++++++++++++++++++++++"
