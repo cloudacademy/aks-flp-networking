@@ -169,6 +169,7 @@ function lab_scenario_1 () {
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
     --name $VNET_NAME \
+    --location $LOCATION \
     --address-prefixes 192.168.0.0/16 \
     --subnet-name $SUBNET_NAME \
     --subnet-prefix 192.168.100.0/24 \
@@ -198,7 +199,7 @@ function lab_scenario_1 () {
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
 
     echo -e "\n\n--> Please wait while we are preparing the environment for you to troubleshoot...\n"
-    az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME &>/dev/null
+    az network route-table create -g $RESOURCE_GROUP --location $LOCATION --name $UDR_NAME &>/dev/null
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME &>/dev/null
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "\n************************************************************************\n"
