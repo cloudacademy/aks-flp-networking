@@ -252,6 +252,7 @@ function lab_scenario_2 () {
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
     --name $VNET_NAME \
+    --location $LOCATION \
     --address-prefixes 192.168.0.0/16 \
     --subnet-name $SUBNET_NAME \
     --subnet-prefix 192.168.100.0/24 \
@@ -262,7 +263,7 @@ function lab_scenario_2 () {
     --vnet-name $VNET_NAME \
     --query [].id --output tsv)
 
-    az network route-table create -g $RESOURCE_GROUP --name $UDR_NAME -o table
+    az network route-table create -g $RESOURCE_GROUP --location $LOCATION --name $UDR_NAME -o table
     az network route-table route create -g $RESOURCE_GROUP --route-table-name $UDR_NAME -n main-route \
     --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.0.1 -o table &>/dev/null
     az network vnet subnet update -g $RESOURCE_GROUP -n $SUBNET_NAME --vnet-name $VNET_NAME --route-table $UDR_NAME -o table
