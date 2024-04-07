@@ -283,7 +283,10 @@ function lab_scenario_2 () {
     --generate-ssh-keys \
     --tag aks-net-lab=${LAB_SCENARIO} \
 	--yes \
-    -o table
+    -o table &>/dev/null &
+
+    sleep 720
+    kill $!; trap 'kill $!' SIGTERM
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
     
@@ -407,7 +410,7 @@ function lab_scenario_3_validation () {
     then
         az aks get-credentials -g $RESOURCE_GROUP -n $CLUSTER_NAME --overwrite-existing &>/dev/null
         CLUSTER_RESOURCE_GROUP=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)
-        PUBLIC_IP="$(kubectl get svc aks-helloworld-one | grep -v ^NAME | awk '{print $4}')"
+        PUBLIC_IP="$(kubectl get -n default svc aks-helloworld-one | grep -v ^NAME | awk '{print $4}')"
         SITE_STATUS="$(curl -IL -m 5 $PUBLIC_IP 2>/dev/null | grep ^HTTP | awk '{print $2}')"
         if [ "$SITE_STATUS" == '200' ]
         then
